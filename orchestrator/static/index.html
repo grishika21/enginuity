@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FieldDesk</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <section id="login" class="login hidden">
+    <div class="login-card">
+      <div class="brand big"><span class="mark">FD</span> FieldDesk</div>
+      <p class="muted">Multi-agent assistant for equipment documentation. Demo data only.</p>
+      <div id="user-list" class="user-list"></div>
+      <label class="field">Password <input id="password" type="password" value="demo"></label>
+      <p id="login-error" class="error"></p>
+    </div>
+  </section>
+
+  <section id="app" class="app hidden">
+    <aside class="sidebar">
+      <div class="brand"><span class="mark">FD</span> FieldDesk</div>
+      <button id="new-chat" class="btn primary wide">+ New chat</button>
+      <div class="side-title">Chats</div>
+      <ul id="conv-list" class="conv-list"></ul>
+      <div class="me">
+        <div id="me-name"></div>
+        <div id="me-roles" class="muted small"></div>
+        <button id="logout" class="btn ghost small">Sign out</button>
+      </div>
+    </aside>
+
+    <main class="chat">
+      <header class="chat-head">
+        <div id="chat-title">New chat</div>
+        <div class="head-actions">
+          <button id="share" class="btn ghost small" title="Share this chat">Share</button>
+        </div>
+      </header>
+      <div id="messages" class="messages">
+        <div id="empty" class="empty">
+          <h2>What do you need?</h2>
+          <p class="muted">Ask about the KP-200 pump or KC-50 compressor, extract from a process instruction, or have a document drafted for review.</p>
+          <div id="samples" class="samples"></div>
+        </div>
+      </div>
+      <form id="composer" class="composer">
+        <div id="attached" class="attached"></div>
+        <div class="composer-row">
+          <label class="btn ghost icon" title="Upload a document">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg><input id="upload" type="file" hidden>
+          </label>
+          <select id="library" class="library" title="Attach a document">
+            <option value="">Attach a document...</option>
+          </select>
+          <textarea id="input" rows="1" placeholder="Message FieldDesk"></textarea>
+          <button id="send" class="btn primary" type="submit">Send</button>
+        </div>
+      </form>
+    </main>
+
+    <aside class="panel">
+      <div class="side-title">Agents online <span id="agent-count" class="pill"></span></div>
+      <p class="muted small">From the Redis registry. An agent that stops sending heartbeats drops out within 30 s.</p>
+      <ul id="agent-list" class="agent-list"></ul>
+      <button id="reload-skills" class="btn ghost small wide hidden">Reload docs-agent skills</button>
+      <div class="side-title">How a turn works</div>
+      <ol class="how small muted">
+        <li>The router (LLM tool calling) picks one agent; your role is then checked in code before it is called.</li>
+        <li>Sensitive steps ask for approval before the agent is called.</li>
+        <li>When an agent needs a decision, it pauses; your reply resumes it.</li>
+        <li>Files open through signed links that expire in 10 minutes.</li>
+      </ol>
+    </aside>
+  </section>
+  <script src="/static/app.js"></script>
+</body>
+</html>

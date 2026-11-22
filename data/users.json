@@ -1,0 +1,23 @@
+{
+  "asha": {
+    "name": "Asha Rao (author)",
+    "roles": [
+      "author"
+    ],
+    "password_sha256": "2a97516c354b68848cdbd8f54a226a0a55b21ed138e207ad6c5cbb9c00aa5aea"
+  },
+  "ravi": {
+    "name": "Ravi Kumar (viewer)",
+    "roles": [
+      "viewer"
+    ],
+    "password_sha256": "2a97516c354b68848cdbd8f54a226a0a55b21ed138e207ad6c5cbb9c00aa5aea"
+  },
+  "admin": {
+    "name": "Admin",
+    "roles": [
+      "admin"
+    ],
+    "password_sha256": "2a97516c354b68848cdbd8f54a226a0a55b21ed138e207ad6c5cbb9c00aa5aea"
+  }
+}

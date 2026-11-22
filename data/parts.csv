@@ -1,0 +1,20 @@
+equipment,part_number,description,qty_per_unit
+KP-200,KP-200-101,Pump casing,1
+KP-200,KP-200-110,Shaft,1
+KP-200,KP-200-111,Shaft sleeve,1
+KP-200,KP-200-114,Mechanical seal assembly,1
+KP-200,KP-200-114B,"Mechanical seal assembly, improved (SB-07)",1
+KP-200,KP-200-115,"Casing O-ring, 210 x 4 mm",1
+KP-200,KP-200-120,"Impeller, 245 mm",1
+KP-200,KP-200-121,Impeller nut,1
+KP-200,KP-200-130,Deep-groove ball bearing 6309,2
+KP-200,KP-200-131,Bearing lip seal,2
+KP-200,KP-200-140,Flexible coupling,1
+KP-200,KP-200-150,"Pressure gauge, 0-16 bar",1
+KC-50,KC-50-201,Crankcase,1
+KC-50,KC-50-210,Intake air filter element,1
+KC-50,KC-50-220,"Compressor oil, 1 L",2
+KC-50,KC-50-230,Valve plate assembly,1
+KC-50,KC-50-240,"Drive belt, B-section",2
+KC-50,KC-50-250,"Safety relief valve, 11 bar",1
+KC-50,KC-50-260,Motor bearing 6205,2

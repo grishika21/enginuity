@@ -1,0 +1,14 @@
+# Streamlit settings for FieldDesk's hosted demo (streamlit_demo/streamlit_app.py).
+[theme]
+base = "light"
+primaryColor = "#d9822b"
+
+[server]
+maxUploadSize = 20
+
+[client]
+toolbarMode = "minimal"
+showErrorDetails = "none"
+
+[browser]
+gatherUsageStats = false

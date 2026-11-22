@@ -1,0 +1,71 @@
+{
+ "files:of:library": {
+  "type": "set",
+  "value": [
+   "f-1215a2ff79cf4ab4",
+   "f-188f8afc28b84056",
+   "f-6d2a3a011cda42d5",
+   "f-8be56a142cf24ff1"
+  ]
+ },
+ "kb:docs:manuals": {
+  "type": "hash",
+  "value": {
+   "doc-f328f156a517": "{\"title\": \"Kestrel KP-200 Centrifugal Pump\", \"file_id\": \"f-1215a2ff79cf4ab4\", \"file_name\": \"KP-200_Maintenance_Manual.pdf\", \"pages\": 3, \"chunks\": 12, \"strategy\": \"structural\", \"ocr\": false, \"equipment\": [\"KP-200\"], \"owner\": \"seed\", \"indexed_at\": 1795343244.3753424}",
+   "doc-8e3e7b8c8f32": "{\"title\": \"Kestrel KC-50 Piston Air Compressor\", \"file_id\": \"f-6d2a3a011cda42d5\", \"file_name\": \"KC-50_Maintenance_Manual.pdf\", \"pages\": 2, \"chunks\": 10, \"strategy\": \"structural\", \"ocr\": false, \"equipment\": [\"KC-50\"], \"owner\": \"seed\", \"indexed_at\": 1795343249.3128452}",
+   "doc-d24e410c0312": "{\"title\": \"KESTREL INDUSTRIAL -SERVICE BULLETIN SB-07\", \"file_id\": \"f-8be56a142cf24ff1\", \"file_name\": \"SB-07_KP-200_Seal_Bulletin_scanned.pdf\", \"pages\": 1, \"chunks\": 1, \"strategy\": \"structural\", \"ocr\": true, \"equipment\": [\"SB-07\", \"KP-200\"], \"owner\": \"seed\", \"indexed_at\": 1795343255.6028085}"
+  }
+ },
+ "file:f-1215a2ff79cf4ab4": {
+  "type": "hash",
+  "value": {
+   "owner": "library",
+   "name": "KP-200_Maintenance_Manual.pdf",
+   "rel": "library/f-1215a2ff79cf4ab4/KP-200_Maintenance_Manual.pdf",
+   "kind": "library",
+   "size": "6356",
+   "mime": "application/pdf",
+   "created": "1795343226.196903"
+  }
+ },
+ "file:f-188f8afc28b84056": {
+  "type": "hash",
+  "value": {
+   "owner": "library",
+   "name": "PI-0042_KP-200_Pump_Assembly.pdf",
+   "rel": "library/f-188f8afc28b84056/PI-0042_KP-200_Pump_Assembly.pdf",
+   "kind": "library",
+   "size": "5551",
+   "mime": "application/pdf",
+   "created": "1795343226.1978714"
+  }
+ },
+ "pi:tree:f-188f8afc28b84056": {
+  "type": "string",
+  "value": "[{\"node_id\": \"0001\", \"title\": \"Process Instruction PI-0042\", \"level\": 1, \"page_start\": 1, \"page_end\": 1, \"text\": \"Assembly of the KP-200 Pump Unit. Kestrel Industrial, revision 4 (fictional demo data).\", \"summary\": \"Assembly of the KP-200 Pump Unit.\", \"children\": []}, {\"node_id\": \"0002\", \"title\": \"1 Scope\", \"level\": 1, \"page_start\": 1, \"page_end\": 1, \"text\": \"This process instruction covers the assembly of the KP-200 pump unit from inspected components at the Kestrel assembly line, station A3.\", \"summary\": \"This process instruction covers the assembly of the KP-200 pump unit from inspected components at the Kestrel assembly line, station A3.\", \"children\": []}, {\"node_id\": \"0003\", \"title\": \"2 Safety\", \"level\": 1, \"page_start\": 1, \"page_end\": 1, \"text\": \"Wear safety shoes, gloves and eye protection.\\n\\nUse the overhead hoist for the casing (78 kg). Never lift by the shaft.\", \"summary\": \"Wear safety shoes, gloves and eye protection.\", \"children\": []}, {\"node_id\": \"0004\", \"title\": \"3 Tools and Fixtures\", \"level\": 1, \"page_start\": 1, \"page_end\": 1, \"text\": \"Bearing induction heater, set to 110 C.\\n\\nTorque wrench 20-200 Nm, calibrated.\\n\\nSeal setting gauge 42.5 mm.\\n\\nDial indicator with magnetic base.\", \"summary\": \"Bearing induction heater, set to 110 C.\", \"children\": []}, {\"node_id\": \"0005\", \"title\": \"4 Bearing Housing Sub-Assembly\", \"level\": 1, \"page_start\": 1, \"page_end\": 1, \"text\": \"\", \"summary\": \"Covers: 4.1 Prepare the Housing; 4.2 Fit the Bearings; 4.3 Fit the Lip Seals\", \"children\": [{\"node_id\": \"0006\", \"title\": \"4.1 Prepare the Housing\", \"level\": 2, \"page_start\": 1, \"page_end\": 1, \"text\": \"- 1. Clean the bearing housing bores and check them for burrs.\\n- 2. Record the housing serial number on the route card.\", \"summary\": \"Clean the bearing housing bores and check them for burrs.\", \"children\": []}, {\"node_id\": \"0007\", \"title\": \"4.2 Fit the Bearings\", \"level\": 2, \"page_start\": 1, \"page_end\": 1, \"text\": \"- 1. Heat each bearing (KP-200-130) to 110 C on the induction heater.\\n- 2. Slide the bearing onto the shaft (KP-200-110) against the shoulder.\\n- 3. Let the bearings cool to room temperature before you continue.\", \"summary\": \"Heat each bearing (KP-200-130) to 110 C on the induction heater.\", \"children\": []}, {\"node_id\": \"0008\", \"title\": \"4.3 Fit the Lip Seals\", \"level\": 2, \"page_start\": 1, \"page_end\": 1, \"text\": \"- 1. Press a bearing lip seal (KP-200-131) into each end cover with the lip facing outward.\\n- 2. Fit the end covers and torque the cover screws to 12 Nm.\", \"summary\": \"Press a bearing lip seal (KP-200-131) into each end cover with the lip facing outward.\", \"children\": []}]}, {\"node_id\": \"0009\", \"title\": \"5 Rotating Assembly\", \"level\": 1, \"page_start\": 1, \"page_end\": 3, \"text\": \"\", \"summary\": \"Covers: 5.1 Shaft Sleeve; 5.2 Mechanical Seal; 5.3 Impeller; 5.4 Balance Check\", \"children\": [{\"node_id\": \"0010\", \"title\": \"5.1 Shaft Sleeve\", \"level\": 2, \"page_start\": 1, \"page_end\": 1, \"text\": \"- 1. Apply anti-seize compound to the shaft.\\n- 2. Slide the shaft sleeve (KP-200-111) on until it meets the shoulder.\", \"summary\": \"Apply anti-seize compound to the shaft.\", \"children\": []}, {\"node_id\": \"0011\", \"title\": \"5.2 Mechanical Seal\", \"level\": 2, \"page_start\": 1, \"page_end\": 2, \"text\": \"- 1. Set the mechanical seal assembly (KP-200-114) to a working length of 42.5 mm with the setting gauge.\\n- 2. Lubricate the seal faces with clean water only.\\n- 3. Slide the seal onto the sleeve and tighten the grub screws to 4 Nm.\", \"summary\": \"Set the mechanical seal assembly (KP-200-114) to a working length of 42.5 mm with the setting gauge.\", \"children\": []}, {\"node_id\": \"0012\", \"title\": \"5.3 Impeller\", \"level\": 2, \"page_start\": 3, \"page_end\": 3, \"text\": \"- 1. Fit the impeller key and slide the impeller (KP-200-120) onto the shaft.\\n- 2. Fit the impeller nut (KP-200-121) and torque it to 95 Nm.\\n- 3. Check that the shaft turns freely by hand.\", \"summary\": \"Fit the impeller key and slide the impeller (KP-200-120) onto the shaft.\", \"children\": []}, {\"node_id\": \"0013\", \"title\": \"5.4 Balance Check\", \"level\": 2, \"page_start\": 3, \"page_end\": 3, \"text\": \"- 1. Mount the rotating assembly on the balancing stand.\\n- 2. The residual unbalance must be below grade G6.3. Record the reading.\", \"summary\": \"Mount the rotating assembly on the balancing stand.\", \"children\": []}]}, {\"node_id\": \"0014\", \"title\": \"6 Casing and Final Assembly\", \"level\": 1, \"page_start\": 3, \"page_end\": 3, \"text\": \"\", \"summary\": \"Covers: 6.1 Casing Closure; 6.2 Coupling and Alignment; 6.3 Instruments\", \"children\": [{\"node_id\": \"0015\", \"title\": \"6.1 Casing Closure\", \"level\": 2, \"page_start\": 3, \"page_end\": 3, \"text\": \"- 1. Fit a new casing O-ring (KP-200-115) in the casing groove.\\n- 2. Lower the back pull-out unit into the casing (KP-200-101) with the hoist.\\n- 3. Torque the casing bolts to 55 Nm in a cross pattern, in two passes.\", \"summary\": \"Fit a new casing O-ring (KP-200-115) in the casing groove.\", \"children\": []}, {\"node_id\": \"0016\", \"title\": \"6.2 Coupling and Alignment\", \"level\": 2, \"page_start\": 3, \"page_end\": 3, \"text\": \"- 1. Fit the flexible coupling (KP-200-140) halves.\\n- 2. Align the motor to within 0.05 mm offset and 0.05 mm/100 mm angularity.\\n- 3. Fit the coupling guard.\", \"summary\": \"Fit the flexible coupling (KP-200-140) halves.\", \"children\": []}, {\"node_id\": \"0017\", \"title\": \"6.3 Instruments\", \"level\": 2, \"page_start\": 3, \"page_end\": 3, \"text\": \"- 1. Fit the pressure gauge (KP-200-150) on the discharge flange with PTFE tape.\", \"summary\": \"Fit the pressure gauge (KP-200-150) on the discharge flange with PTFE tape.\", \"children\": []}]}, {\"node_id\": \"0018\", \"title\": \"7 Testing\", \"level\": 1, \"page_start\": 4, \"page_end\": 4, \"text\": \"\", \"summary\": \"Covers: 7.1 Hydrostatic Test; 7.2 Performance Run\", \"children\": [{\"node_id\": \"0019\", \"title\": \"7.1 Hydrostatic Test\", \"level\": 2, \"page_start\": 4, \"page_end\": 4, \"text\": \"- 1. Fill the casing with water and pressurise to 24 bar (1.5 x max casing pressure).\\n- 2. Hold for 10 minutes. No visible leakage is allowed.\", \"summary\": \"Fill the casing with water and pressurise to 24 bar (1.5 x max casing pressure).\", \"children\": []}, {\"node_id\": \"0020\", \"title\": \"7.2 Performance Run\", \"level\": 2, \"page_start\": 4, \"page_end\": 4, \"text\": \"- 1. Run the pump at rated speed for 30 minutes on the test loop.\\n- 2. Record flow, head, current and bearing temperatures every 10 minutes.\\n- 3. Bearing temperature must stay below 80 C.\", \"summary\": \"Run the pump at rated speed for 30 minutes on the test loop.\", \"children\": []}]}, {\"node_id\": \"0021\", \"title\": \"8 Packing and Dispatch\", \"level\": 1, \"page_start\": 4, \"page_end\": 4, \"text\": \"- 1. Drain the pump and blow the casing dry with oil-free air.\\n- 2. Fit flange covers, attach the test certificate and pack on a pallet.\", \"summary\": \"Drain the pump and blow the casing dry with oil-free air.\", \"children\": []}]"
+ },
+ "file:f-6d2a3a011cda42d5": {
+  "type": "hash",
+  "value": {
+   "owner": "library",
+   "name": "KC-50_Maintenance_Manual.pdf",
+   "rel": "library/f-6d2a3a011cda42d5/KC-50_Maintenance_Manual.pdf",
+   "kind": "library",
+   "size": "3735",
+   "mime": "application/pdf",
+   "created": "1795343226.1957858"
+  }
+ },
+ "file:f-8be56a142cf24ff1": {
+  "type": "hash",
+  "value": {
+   "name": "SB-07_KP-200_Seal_Bulletin_scanned.pdf",
+   "rel": "library/f-8be56a142cf24ff1/SB-07_KP-200_Seal_Bulletin_scanned.pdf",
+   "size": "117996",
+   "created": "1795343226.1992192",
+   "mime": "application/pdf",
+   "kind": "library",
+   "owner": "library"
+  }
+ }
+}

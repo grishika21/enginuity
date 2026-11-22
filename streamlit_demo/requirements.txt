@@ -1,0 +1,37 @@
+# FieldDesk on Streamlit Community Cloud (streamlit_demo/streamlit_app.py). Community Cloud uses the
+# dependency file next to the app first. The pins match ../requirements.txt; left out: pytest.
+streamlit==1.67.0
+
+# CPU-only PyTorch (Docling and sentence-transformers need it; the default build is several GB).
+# Choose Python 3.11 in the app's advanced settings, so these small wheels are used.
+torch @ https://download.pytorch.org/whl/cpu/torch-2.7.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl ; python_version == "3.11" and platform_machine == "x86_64"
+torchvision @ https://download.pytorch.org/whl/cpu/torchvision-0.22.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl ; python_version == "3.11" and platform_machine == "x86_64"
+torch==2.7.0 ; python_version != "3.11" or platform_machine != "x86_64"
+torchvision==0.22.0 ; python_version != "3.11" or platform_machine != "x86_64"
+
+# Web and transport
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+httpx==0.28.1
+python-multipart==0.0.20
+pydantic==2.11.4
+pyjwt==2.10.1
+redis==5.2.1
+pyyaml==6.0.2
+
+# LLM and agents
+openai==1.82.0
+langgraph==0.4.7
+langgraph-checkpoint==2.1.2
+langgraph-checkpoint-sqlite==2.0.11
+
+# Knowledge base
+docling==2.36.1
+sentence-transformers==4.1.0
+qdrant-client==1.14.2
+numpy==2.2.6
+
+# Documents
+python-docx==1.1.2
+reportlab==4.4.1
+pillow==11.2.1

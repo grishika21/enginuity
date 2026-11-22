@@ -1,0 +1,3 @@
+redis-server
+tesseract-ocr
+libgl1

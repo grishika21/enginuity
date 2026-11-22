@@ -1,0 +1,40 @@
+{
+  "documents": {
+    "TP-101": {
+      "title": "KP-200 Pump Overhaul",
+      "equipment": "KP-200",
+      "parts": [
+        "KP-200-114",
+        "KP-200-115",
+        "KP-200-120",
+        "KP-200-130"
+      ],
+      "file": "TP-101.md"
+    },
+    "TP-102": {
+      "title": "KP-200 Seasonal Shutdown and Restart",
+      "equipment": "KP-200",
+      "parts": [
+        "KP-200-115",
+        "KP-200-150"
+      ],
+      "file": "TP-102.md"
+    },
+    "TP-103": {
+      "title": "KP-200 Coupling Alignment",
+      "equipment": "KP-200",
+      "parts": [
+        "KP-200-140"
+      ],
+      "file": "TP-103.md"
+    },
+    "TP-201": {
+      "title": "KC-50 Intake Filter Change",
+      "equipment": "KC-50",
+      "parts": [
+        "KC-50-210"
+      ],
+      "file": "TP-201.md"
+    }
+  }
+}
