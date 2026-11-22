@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-os.environ["STORAGE_DIR"] = tempfile.mkdtemp(prefix="fielddesk-test-")
+os.environ["STORAGE_DIR"] = tempfile.mkdtemp(prefix="enginuity-test-")
 os.environ["JWT_SECRET"] = "test-secret"
 os.environ.setdefault("DATA_DIR", str(ROOT / "data"))
 

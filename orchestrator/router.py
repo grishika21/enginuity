@@ -20,7 +20,7 @@ from agentkit.safety import USER_CONTENT_RULE, wrap_user
 DIRECT = "reply_directly"
 
 SYSTEM = (
-    "You are the router of FieldDesk, an assistant for equipment documentation. For every user "
+    "You are the router of Enginuity, an assistant for equipment documentation. For every user "
     "message, call exactly one tool.\n"
     "- Call an agent tool for any request about the equipment, its documents, procedures, parts or "
     "values. Pass the request in full, resolving references like \"it\" or \"that pump\" from the "

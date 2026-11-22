@@ -1,4 +1,4 @@
-"""Shared building blocks for the FieldDesk orchestrator and its agents."""
+"""Shared building blocks for the Enginuity orchestrator and its agents."""
 
 import logging
 import os

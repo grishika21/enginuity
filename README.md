@@ -1,4 +1,6 @@
-# FieldDesk
+# Enginuity
+
+**AI agents for engineering workflows.**
 
 A multi-agent assistant for equipment documentation. Engineers work in one chat; an orchestrator
 routes each request to the right specialist agent, and a person stays in control of every step

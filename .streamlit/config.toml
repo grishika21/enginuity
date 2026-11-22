@@ -1,4 +1,4 @@
-# Streamlit settings for FieldDesk's hosted demo (streamlit_demo/streamlit_app.py).
+# Streamlit settings for Enginuity's hosted demo (streamlit_demo/streamlit_app.py).
 [theme]
 base = "light"
 primaryColor = "#d9822b"

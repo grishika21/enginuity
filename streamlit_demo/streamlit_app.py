@@ -1,4 +1,4 @@
-"""FieldDesk on Streamlit Community Cloud.
+"""Enginuity on Streamlit Community Cloud.
 
 Deploy at share.streamlit.io: Create app -> this repository, branch main, main file path
 `streamlit_demo/streamlit_app.py`. Advanced settings: Python 3.11, and the secret
@@ -69,7 +69,7 @@ MAX_TURNS = 40  # per browser session, to keep the shared API key usable for eve
 EXTRA_SKILL = ROOT / "examples" / "skills" / "troubleshooting-guide"
 LIVE_SKILL = ROOT / "agents" / "docs_agent" / "skills" / "troubleshooting-guide"
 
-st.set_page_config(page_title="FieldDesk", page_icon=":material/engineering:", layout="wide")
+st.set_page_config(page_title="Enginuity", page_icon=":material/engineering:", layout="wide")
 
 
 @st.cache_resource(show_spinner=False)
@@ -185,7 +185,7 @@ def render(message: dict, index: int) -> None:
 # ---- sidebar -------------------------------------------------------------------------------
 
 with st.sidebar:
-    st.markdown("## FieldDesk")
+    st.markdown("## Enginuity")
     st.caption("A multi-agent assistant for equipment documentation. Demo data only.")
     picked = st.radio("Signed in as", list(USERS), format_func=USERS.get, key="user_pick")
     if ss.user != picked:
@@ -269,7 +269,7 @@ names = {f["file_id"]: ("Library: " if f["owner"] == "library" else "Mine: ") + 
 attach = st.selectbox("Attach a document (optional)", ["", *names], key="attach_pick",
                       format_func=lambda fid: names.get(fid, "No document"))
 
-prompt = st.chat_input("Message FieldDesk")
+prompt = st.chat_input("Message Enginuity")
 text = prompt or ss.pop("queued", None)
 if text:
     files = ss.pop("queued_files", None) or ([attach] if attach else [])

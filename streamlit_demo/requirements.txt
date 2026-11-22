@@ -1,4 +1,4 @@
-# FieldDesk on Streamlit Community Cloud (streamlit_demo/streamlit_app.py). Community Cloud uses the
+# Enginuity on Streamlit Community Cloud (streamlit_demo/streamlit_app.py). Community Cloud uses the
 # dependency file next to the app first. The pins match ../requirements.txt; left out: pytest.
 streamlit==1.67.0
 

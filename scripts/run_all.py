@@ -46,8 +46,8 @@ def start_qdrant() -> str:
         return url
     except httpx.HTTPError:
         pass
-    subprocess.run(["docker", "rm", "-f", "fielddesk-qdrant"], capture_output=True)
-    subprocess.run(["docker", "run", "-d", "--name", "fielddesk-qdrant", "-p", "6333:6333",
+    subprocess.run(["docker", "rm", "-f", "enginuity-qdrant"], capture_output=True)
+    subprocess.run(["docker", "run", "-d", "--name", "enginuity-qdrant", "-p", "6333:6333",
                     "-v", f"{ROOT / 'storage' / 'qdrant'}:/qdrant/storage", "qdrant/qdrant:v1.19.0"], check=True)
     for _ in range(30):
         try:
@@ -75,7 +75,7 @@ def main() -> None:
                                 cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT)
         procs.append((name, port, proc))
         print(f"started {name:22} on :{port}  (log: storage/logs/{name}.log)")
-    print("\nFieldDesk: http://localhost:8000   users: asha (author), ravi (viewer), admin; password: demo")
+    print("\nEnginuity: http://localhost:8000   users: asha (author), ravi (viewer), admin; password: demo")
     print("Ctrl+C to stop.\n")
 
     def stop(*_args):

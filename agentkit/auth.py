@@ -13,7 +13,7 @@ import jwt
 
 from .config import get_settings
 
-ISSUER = "fielddesk-demo"
+ISSUER = "enginuity-demo"
 TOKEN_TTL_S = 8 * 3600
 
 

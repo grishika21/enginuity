@@ -1,4 +1,4 @@
-"""FieldDesk orchestrator: one chat in front of many agents.
+"""Enginuity orchestrator: one chat in front of many agents.
 
 - Login issues a JWT with the user's roles; the token is forwarded on every agent call.
 - The router (LLM tool calling) picks an agent from the live Redis registry, filtered by role.
@@ -62,7 +62,7 @@ async def lifespan(_app: FastAPI):
     await client.close()
 
 
-app = FastAPI(title="FieldDesk orchestrator", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="Enginuity orchestrator", version="1.0.0", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 

@@ -215,7 +215,7 @@ async function openConversation(id) {
 function renderMessage(m, live) {
   const wrap = document.createElement("div");
   wrap.className = "msg " + m.role;
-  const who = m.role === "user" ? esc(m.user || state.me.user) : "FieldDesk" + (m.agent ? ` <span class="agent-tag">${esc(m.agent)}</span>` : "");
+  const who = m.role === "user" ? esc(m.user || state.me.user) : "Enginuity" + (m.agent ? ` <span class="agent-tag">${esc(m.agent)}</span>` : "");
   wrap.innerHTML = `<div class="who">${who}</div><div class="bubble"></div>`;
   const bubble = wrap.querySelector(".bubble");
   if (m.role === "assistant") {
