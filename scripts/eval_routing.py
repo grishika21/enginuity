@@ -26,7 +26,7 @@ from agents.pi_agent.app import CARD as PI  # noqa: E402
 from orchestrator.router import route  # noqa: E402
 
 DOCUMENTS = ["KP-200_Maintenance_Manual.pdf", "KC-50_Maintenance_Manual.pdf", "PI-0042_KP-200_Pump_Assembly.pdf",
-             "SB-07_KP-200_Seal_Bulletin_scanned.pdf"]
+             "SB-07_KP-200_Seal_Bulletin_scanned.pdf", "Travel_Policy_2026.pdf", "KV-80_Control_Valve_Manual.pdf"]
 
 CASES = [
     ("How do I replace the mechanical seal on the KP-200?", "kb-extraction-agent"),
@@ -42,7 +42,14 @@ CASES = [
     ("Extract the mechanical seal and impeller fitting steps from PI-0042", "pi-agent"),
     ("Pull out the testing requirements from the PI-0042 process instruction into Word", "pi-agent"),
     ("Add the KC-50 manual to the knowledge base", "kb-ingestion-agent"),
-    ("Index this document so I can search it", "kb-ingestion-agent"),
+    ("Index this document so I can search it", "kb-ingestion-agent", ["KV-80_Control_Valve_Manual.pdf"]),
+    # visitors' own documents, outside the equipment domain
+    ("What does the travel policy say about hotel costs?", "kb-extraction-agent"),
+    ("What are the key points of the KV-80 control valve manual?", "kb-extraction-agent"),
+    ("Write a brief of the KP-200 maintenance manual", "docs-agent"),
+    ("Draft a one-page overview document of the travel policy", "docs-agent"),
+    ("Extract the expense claim section from Travel_Policy_2026.pdf into Word", "pi-agent"),
+    ("Add my travel policy to the knowledge base", "kb-ingestion-agent"),
     ("Hi! What can you do?", None),
     ("Thanks, that's all", None),
 ]
@@ -53,12 +60,12 @@ def main() -> int:
     parser.add_argument("--runs", type=int, default=1)
     args = parser.parse_args()
     llm = get_llm()
-    cards = [KBI, KBE, PI, DOCS]
+    cards = sorted([KBI, KBE, PI, DOCS], key=lambda c: c.name)  # the order the registry returns them in
     total, correct, misses = 0, 0, Counter()
     started = time.time()
     for _ in range(args.runs):
-        for prompt, expected in CASES:
-            decision = route(llm, cards, ("author",), prompt, [], DOCUMENTS)
+        for prompt, expected, *attached in CASES:  # a third item: the files attached to the message
+            decision = route(llm, cards, ("author",), prompt, [], DOCUMENTS, attached[0] if attached else None)
             got = decision.card.name if decision.card else None
             total += 1
             if got == expected:

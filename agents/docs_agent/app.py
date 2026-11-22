@@ -1,4 +1,4 @@
-"""Docs agent: authors equipment documentation end to end, with a person in control.
+"""Docs agent: authors technical documents end to end, with a person in control.
 
 Each document type is a SKILL.md folder. The agent card lists one skill per folder, so a new
 folder plus POST /admin/reload-skills makes a new document type available everywhere, including
@@ -30,10 +30,10 @@ def card_skills() -> list[Skill]:
 CARD = AgentCard(
     name="docs-agent",
     title="Technical documentation author",
-    description="Authors a new document (maintenance procedure, system description or another type it "
-                "has a skill for) for review and publishing. Use ONLY when the user explicitly asks to "
-                "write, draft, create, author or prepare a document. Never use it to answer a question, "
-                "even a how-to question.",
+    description="Authors a new document (maintenance procedure, system description, document brief "
+                "or another type it has a skill for) for review and publishing. Use ONLY when the user "
+                "explicitly asks to write, draft, create, author or prepare a document. Never use it to "
+                "answer a question, even a how-to question.",
     version="1.0.0",
     url=os.environ.get("DOCS_AGENT_URL", "http://localhost:8104"),
     skills=card_skills(),
@@ -46,6 +46,9 @@ def _finished_message(values: dict) -> Completed:
     if status == "no_skill":
         names = ", ".join(s.title.lower() for s in g.SKILLS.values())
         return Completed(message=f"I can author these document types: {names}. Which one do you need?")
+    if status == "not_indexed":
+        return Completed(message="That document isn't in the knowledge base yet, so I have nothing to write "
+                                 "from. Add it to the knowledge base first, then ask again.")
     if status == "no_sources":
         return Completed(message="The knowledge base has nothing on that yet, so I can't write it without "
                                  "inventing content. Add a source document first, then ask again.")
@@ -80,7 +83,7 @@ def handle(ctx: JobContext) -> Completed | NeedsInput:
             ctx.progress("Resuming the paused run", "from its checkpoint")
             g.GRAPH.invoke(Command(resume=ctx.message), config)
         else:
-            g.GRAPH.invoke({"request": ctx.message}, config)
+            g.GRAPH.invoke({"request": ctx.message, "files": list(ctx.request.files)}, config)
     finally:
         g.CTX.pop(thread_id, None)
 

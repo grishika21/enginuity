@@ -7,6 +7,7 @@
   resumes the same agent session.
 - Every turn runs as a background job streamed to the UI over SSE; chats are saved per user.
 - Files are reached only through short-lived signed links; internal paths never reach the UI.
+- On the hosted demo each visitor signs in inside a private sandbox (see agentkit.sandbox).
 """
 
 from __future__ import annotations
@@ -36,6 +37,8 @@ from agentkit.jobs import JobStore
 from agentkit.llm import LLMError, get_llm
 from agentkit.registry import find_agent, healthy_agents
 from agentkit.safety import screen, scrub
+from agentkit.sandbox import persona, sandbox_of, scoped, valid_sandbox
+from orchestrator import sandbox as sandboxes
 from orchestrator.history import HistoryStore
 from orchestrator.router import route
 
@@ -89,6 +92,7 @@ def readable_conv(conv_id: str, ident: Identity) -> dict:
 class Login(BaseModel):
     username: str
     password: str
+    sandbox: str | None = None  # the hosted demo signs every visitor in to their own sandbox
 
 
 @app.get("/")
@@ -102,8 +106,11 @@ async def login(body: Login) -> dict:
     digest = hashlib.sha256(body.password.encode()).hexdigest()
     if not user or not hmac.compare_digest(digest, user["password_sha256"]):
         raise HTTPException(status_code=401, detail="Wrong user name or password.")
-    return {"token": issue(body.username, user["roles"]), "user": body.username, "name": user["name"],
-            "roles": user["roles"]}
+    if body.sandbox is not None and not valid_sandbox(body.sandbox):
+        raise HTTPException(status_code=400, detail="Invalid sandbox id.")
+    user_id = scoped(body.username, body.sandbox)
+    return {"token": issue(user_id, user["roles"]), "user": user_id, "persona": body.username,
+            "name": user["name"], "roles": user["roles"], "sandbox": body.sandbox or ""}
 
 
 @app.get("/api/users")
@@ -121,6 +128,31 @@ async def list_agents(request: Request) -> list[dict]:
                     "heartbeat_age_s": round(age, 1), "allowed": allowed(ident.roles, card.allowed_roles),
                     "routable": card.routable})
     return out
+
+
+@app.get("/api/knowledge")
+async def knowledge(request: Request) -> list[dict]:
+    """What the knowledge base holds for this user, from the Q&A agent that owns the index."""
+    ident = identity(request)
+    card = find_agent("kb-extraction-agent")
+    if card is None:
+        return []
+    resp = await client._client.get(f"{card.url}/catalog", headers={"Authorization": f"Bearer {ident.token}"})
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail="The knowledge base did not answer.")
+    return resp.json()
+
+
+@app.post("/api/sandbox/reset")
+async def reset_sandbox(request: Request) -> dict:
+    """Delete everything created in the caller's sandbox. The shared sample data stays."""
+    ident = identity(request)
+    sandbox = sandbox_of(ident.user)
+    if not sandbox:
+        raise HTTPException(status_code=400, detail="Only a sandboxed demo session can be reset.")
+    removed = await asyncio.to_thread(sandboxes.reset, sandbox, list(load_users()), files, history)
+    log.info("sandbox %s reset by %s: %s", sandbox, persona(ident.user), removed)
+    return {"sandbox": sandbox, "removed": removed}
 
 
 @app.get("/api/files")
@@ -335,7 +367,9 @@ class Turn:
         cards = [c for c, _age in await asyncio.to_thread(healthy_agents)]
         self.step("Routing", f"{len(cards)} agents online")
         recent = [{"role": m["role"], "text": m["text"]} for m in self.conv["messages"][:-1] if m.get("text")]
-        decision = await asyncio.to_thread(route, get_llm(), cards, self.ident.roles, message, recent, list(documents))
+        attached = [files.meta(f)["name"] for f in file_ids]
+        decision = await asyncio.to_thread(route, get_llm(), cards, self.ident.roles, message, recent, list(documents),
+                                           attached)
         if decision.card is None:
             self.reply["text"] = decision.reply
             return
@@ -357,8 +391,8 @@ class Turn:
             names = ", ".join(files.meta(f)["name"] for f in chosen) or "no document"
             self.conv["pending"] = {"kind": "approval", "agent": card.name, "request": decision.request, "files": chosen}
             self.reply["agent"] = card.name
-            self.ask(f"Step approval: **{card.title}** changes shared data ({names}). Go ahead?",
-                     ["yes", "no"], "approval")
+            self.ask(f"**Approval needed.** The {card.title} agent changes shared data: {names}. "
+                     "Nothing happens until you say yes. Go ahead?", ["yes", "no"], "approval")
             return
         await self.call(card, decision.request, chosen)
 

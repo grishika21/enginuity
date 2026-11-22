@@ -21,6 +21,7 @@ from agentkit.config import get_settings
 from agentkit.contract import AgentError
 from agentkit.llm import LLMError, get_llm
 from agentkit.safety import USER_CONTENT_RULE, wrap_user
+from agentkit.sandbox import sandbox_of
 from agentkit.server import JobContext
 from agents.docs_agent import tools
 from agents.docs_agent.skills_loader import SkillSpec, load_skills
@@ -39,6 +40,7 @@ def reload_skills() -> dict[str, SkillSpec]:
 
 class DocState(TypedDict, total=False):
     request: str
+    files: list[str]
     skill: str
     inputs: dict[str, str | None]
     input_error: str
@@ -146,14 +148,19 @@ def gather_sources(state: DocState, config) -> DocState:
     spec = _skill(state)
     inputs = state["inputs"]
     query = spec.source_query.format(**{k: v or "" for k, v in inputs.items()})
-    job = ctx.call_peer(query, skill="ask",
-                        parameters={"mode": "chunks", "top_k": 8, "equipment": inputs.get("equipment", "")})
+    parameters = {"mode": "chunks", "top_k": 8, "equipment": inputs.get("equipment") or ""}
+    attached = state.get("files") or []
+    if spec.source_scope == "document" and attached:  # the whole attached document, in reading order
+        parameters["file_id"] = attached[0]
+    job = ctx.call_peer(query, skill="ask", parameters=parameters)
     if job.status != "completed":
         raise AgentError(job.message or "The knowledge base could not be searched.")
+    if job.data.get("not_indexed"):
+        return {"status": "not_indexed"}
     chunks = job.data.get("chunks", [])
     if not chunks:
         return {"status": "no_sources"}
-    chunks.sort(key=lambda c: (c.get("title", ""), c.get("order", 0)))
+    chunks.sort(key=lambda c: (c.get("title", ""), c.get("order", 0)))  # reading order within each document
     sources = [{"n": n, "title": c["title"], "page": c.get("page"), "heading": c.get("heading", ""),
                 "text": c["text"]} for n, c in enumerate(chunks, 1)]
     docs = sorted({s["title"] for s in sources})
@@ -166,15 +173,16 @@ def _source_block(sources: list[dict]) -> str:
 
 
 def _assemble(state: DocState, raw: str) -> DocState:
-    """Deterministic post-processing of the model's draft."""
+    """Deterministic post-processing of the model's draft. Part numbers are checked only for
+    document types about one equipment model: without a model there is no catalogue to check."""
     spec = _skill(state)
-    equipment = state["inputs"]["equipment"]
+    equipment = state["inputs"].get("equipment")
     sections = tools.split_sections(raw, spec.sections)
     for name in spec.numbered_sections:
         sections[name] = tools.number_steps(sections[name])
     verified, unknown = [], []
     for name, text in sections.items():
-        if name in spec.generated_sections:
+        if name in spec.generated_sections or not equipment:
             continue
         checked, ok, bad = tools.check_parts(tools.annotate_part_names(text, equipment), equipment)
         sections[name] = checked
@@ -187,14 +195,21 @@ def _assemble(state: DocState, raw: str) -> DocState:
     gaps = sum(t.count("[value not in sources]") for t in sections.values())
     if gaps:
         open_items.append(f"{gaps} value(s) are not in the sources and are marked [value not in sources].")
-    subject = (state["inputs"].get("task") or state["inputs"].get("system") or "").strip()
-    if subject.lower() in ("", "whole unit", "complete unit", "whole equipment"):
+    inputs = state["inputs"]
+    subject = (inputs.get("task") or inputs.get("system") or inputs.get("topic") or "").strip()
+    titles = sorted({s["title"] for s in state["sources"]})
+    if spec.source_scope == "document" and state.get("files") and len(titles) == 1:
+        subject = titles[0]  # the document's own title, not the file name the user typed
+    subject = subject[:1].upper() + subject[1:]
+    if not equipment:
+        title = f"{subject} - {spec.title}" if subject else spec.title
+    elif subject.lower() in ("", "whole unit", "complete unit", "whole equipment"):
         title = f"{equipment} {spec.title}"
     else:
-        title = f"{equipment} {subject[0].upper() + subject[1:]} - {spec.title}"
+        title = f"{equipment} {subject} - {spec.title}"
     version = state.get("version", 0) + 1
-    header = {"Document type": spec.title, "Equipment": equipment, "Version": f"draft v{version}",
-              "Sources": "; ".join(sorted({s['title'] for s in state['sources']}))}
+    header = {"Document type": spec.title, **({"Equipment": equipment} if equipment else {}),
+              "Version": f"draft v{version}", "Sources": "; ".join(sorted({s['title'] for s in state['sources']}))}
     markdown = tools.render(title, header, sections)
     return {"title": title, "draft": markdown, "version": version, "verified_parts": verified,
             "open_items": open_items}
@@ -246,7 +261,8 @@ def revise(state: DocState, config) -> DocState:
 
 def impact(state: DocState, config) -> DocState:
     ctx = _ctx(config)
-    affected = tools.impact(state.get("verified_parts") or [], state["inputs"]["equipment"])
+    affected = tools.impact(state.get("verified_parts") or [], state["inputs"].get("equipment"),
+                            sandbox_of(ctx.user))
     ctx.progress("Impact analysis", f"{len(affected)} published document(s) share parts with this draft")
     return {"impact": affected}
 
@@ -270,8 +286,9 @@ def confirm_publish(state: DocState, config) -> DocState:
 def publish(state: DocState, config) -> DocState:
     ctx = _ctx(config)
     ctx.progress("Publishing", "library, then the document graph")
-    doc_id = tools.publish(state["title"], state["inputs"]["equipment"], state.get("verified_parts") or [],
-                           state["draft"].replace(f"draft v{state['version']}", f"v{state['version']}"))
+    doc_id = tools.publish(state["title"], state["inputs"].get("equipment"), state.get("verified_parts") or [],
+                           state["draft"].replace(f"draft v{state['version']}", f"v{state['version']}"),
+                           sandbox=sandbox_of(ctx.user))
     return {"status": "published", "doc_id": doc_id}
 
 
@@ -287,7 +304,7 @@ def _after_ask(state: DocState) -> str:
 
 
 def _after_sources(state: DocState) -> str:
-    return END if state.get("status") == "no_sources" else "write_draft"
+    return END if state.get("status") in ("no_sources", "not_indexed") else "write_draft"
 
 
 def _after_review(state: DocState) -> str:

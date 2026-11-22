@@ -107,3 +107,36 @@ def test_publish_rolls_back_when_the_graph_write_fails(monkeypatch):
 def test_docx_export_handles_headings_lists_and_tables():
     data = tools.to_docx("# T\n\n## 1. A\n\n- bullet\n1. step\n\n| a | b |\n|---|---|\n| 1 | 2 |\n")
     assert data[:2] == b"PK"  # a .docx is a zip file
+
+
+def test_brief_skill_reads_the_attached_document(tmp_path):
+    brief = load_skills()["document-brief"]
+    assert brief.source_scope == "document" and [i.key for i in brief.inputs] == ["topic"]
+    assert load_skills()["maintenance-procedure"].source_scope == "knowledge_base"
+    (tmp_path / "bad").mkdir()
+    text = (SKILLS_DIR / "document-brief" / "SKILL.md").read_text().replace("name: document-brief", "name: bad")
+    (tmp_path / "bad" / "SKILL.md").write_text(text.replace("source_scope: document", "source_scope: web"))
+    assert load_skills(tmp_path) == {}  # an unknown scope is rejected, not guessed
+
+
+def test_a_draft_about_no_equipment_skips_part_checks():
+    from agents.docs_agent import graph
+
+    state = {"skill": "document-brief", "inputs": {"topic": "the travel policy"},
+             "sources": [{"n": 1, "title": "Travel policy", "page": 1, "heading": "Scope", "text": "..."}]}
+    raw = ("## Purpose and scope\nCovers business travel.\n## Key points\n- Book via the portal (ref KP-200-999).\n"
+           "## Values, limits and requirements\n- Hotel cap 150 EUR per night.\n")
+    out = graph._assemble(state, raw)
+    assert out["title"] == "The travel policy - Document brief"
+    assert "KP-200-999 [unverified" not in out["draft"] and out["verified_parts"] == []
+    assert "**Equipment:**" not in out["draft"]
+    assert 'Section "Warnings and caveats" has no source content.' in out["open_items"]
+
+
+def test_a_brief_of_an_attached_document_is_titled_after_the_document():
+    from agents.docs_agent import graph
+
+    state = {"skill": "document-brief", "inputs": {"topic": "KV-80_Control_Valve_Manual.pdf"}, "files": ["f-1"],
+             "sources": [{"n": 1, "title": "Kestrel KV-80 Pneumatic Control Valve", "page": 1, "heading": "1", "text": "."}]}
+    out = graph._assemble(state, "## Purpose and scope\nA valve.\n")
+    assert out["title"] == "Kestrel KV-80 Pneumatic Control Valve - Document brief"

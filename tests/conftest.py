@@ -31,6 +31,7 @@ class FakeRedis:
         for k in keys:
             self.kv.pop(k, None)
             self.hashes.pop(k, None)
+            self.sets.pop(k, None)
 
     def hset(self, key, field=None, value=None, mapping=None):
         h = self.hashes.setdefault(key, {})

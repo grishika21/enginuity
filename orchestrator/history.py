@@ -63,3 +63,16 @@ class HistoryStore:
 
     def delete(self, conv_id: str) -> None:
         self._path(conv_id).unlink(missing_ok=True)
+
+    def purge_owners(self, owners: set[str]) -> int:
+        """Delete every chat owned by these users (used to reset a demo sandbox)."""
+        gone = 0
+        for path in self.root.glob("c-*.json"):
+            try:
+                owner = json.loads(path.read_text(encoding="utf-8"))["owner"]
+            except (OSError, json.JSONDecodeError, KeyError):
+                continue
+            if owner in owners:
+                path.unlink(missing_ok=True)
+                gone += 1
+        return gone

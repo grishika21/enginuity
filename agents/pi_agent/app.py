@@ -1,4 +1,5 @@
-"""PI agent: pull the sections of a process instruction that answer a request into Word.
+"""PI agent: pull the sections of a process instruction (or any structured document) that answer
+a request into Word.
 
 A LangGraph supervisor routes between three sub-agents:
   parser   - Docling parse -> PageIndex-style tree (cached per file)
@@ -30,13 +31,14 @@ from agents.pi_agent.tree import (Node, build_tree, from_dicts, iter_nodes, lexi
 CARD = AgentCard(
     name="pi-agent",
     title="Process instruction extractor",
-    description="Extracts the sections of a process instruction (PI) that answer a request, for example "
-                "the assembly steps of one sub-assembly or the test requirements, into a Word document. "
-                "Use when the user asks to extract, pull out or export part of a PI or work instruction.",
+    description="Extracts the sections of a document that answer a request into a Word file, keeping "
+                "the steps and their order intact: for example the assembly steps of one sub-assembly "
+                "from a process instruction (PI), the test requirements, or one chapter of any uploaded "
+                "document. Use when the user asks to extract, pull out or export part of a document.",
     version="1.0.0",
     url=os.environ.get("PI_AGENT_URL", "http://localhost:8103"),
-    skills=[Skill(id="pi-extract", name="Extract from a process instruction",
-                  description="Navigate the PI's outline and export the matching sections to Word.")],
+    skills=[Skill(id="pi-extract", name="Extract sections of a document",
+                  description="Navigate the document's outline (PageIndex) and export the matching sections to Word.")],
     allowed_roles=["author", "viewer"],
     document_input=True,
 )
@@ -180,12 +182,12 @@ GRAPH = build_graph()
 
 def _pick_file(ctx: JobContext) -> tuple[str, str]:
     if not ctx.request.files:
-        raise AgentError("Attach or pick the process instruction (PDF or Word) to extract from.")
+        raise AgentError("Attach or pick the document (PDF or Word) to extract from.")
     file_id = ctx.request.files[0]
     meta = ctx.files.meta(file_id)
     suffix = os.path.splitext(meta["name"])[1].lower()
     if suffix not in ALLOWED_TYPES:
-        raise AgentError("The PI agent reads PDF or Word process instructions only.")
+        raise AgentError("The extraction agent reads PDF or Word documents only.")
     ctx.files.path(file_id, ctx.user)  # access and storage-location check before any work
     return file_id, meta["name"]
 

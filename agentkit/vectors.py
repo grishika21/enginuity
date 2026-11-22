@@ -44,7 +44,8 @@ class Hit:
 
 class VectorStore(Protocol):
     def upsert(self, collection: str, ids: list[str], vectors: np.ndarray, payloads: list[dict]) -> None: ...
-    def search(self, collection: str, vector: np.ndarray, top_k: int = 8, doc_id: str | None = None) -> list[Hit]: ...
+    def search(self, collection: str, vector: np.ndarray, top_k: int = 8, doc_id: str | None = None,
+               visible: set[str] | None = None) -> list[Hit]: ...
     def delete_doc(self, collection: str, doc_id: str) -> None: ...
     def chunks(self, collection: str, doc_id: str) -> list[dict]: ...
 
@@ -55,7 +56,7 @@ class LocalStore:
     def __init__(self, root: Path | None = None):
         self.root = root or get_settings().storage_dir / "vectors"
         self.root.mkdir(parents=True, exist_ok=True)
-        self._cache: dict[str, tuple[float, np.ndarray, list[dict]]] = {}
+        self._cache: dict[str, tuple[tuple[int, int, int], np.ndarray, list[dict]]] = {}
         self._lock = threading.Lock()
 
     def _dir(self, collection: str) -> Path:
@@ -68,13 +69,17 @@ class LocalStore:
         vec_path, meta_path = d / "vectors.npy", d / "payloads.json"
         if not vec_path.exists():
             return np.zeros((0, 0), dtype=np.float32), []
-        mtime = vec_path.stat().st_mtime
+        # Every write replaces the file, so a new inode means new content. File times alone are
+        # not enough: they tick every few milliseconds, and two quick writes (delete, then insert)
+        # would read a stale cache.
+        st = vec_path.stat()
+        version = (st.st_ino, st.st_mtime_ns, st.st_size)
         cached = self._cache.get(collection)
-        if cached and cached[0] == mtime:
+        if cached and cached[0] == version:
             return cached[1], cached[2]
         vectors = np.load(vec_path)
         payloads = json.loads(meta_path.read_text(encoding="utf-8"))
-        self._cache[collection] = (mtime, vectors, payloads)
+        self._cache[collection] = (version, vectors, payloads)
         return vectors, payloads
 
     def _write(self, collection: str, vectors: np.ndarray, payloads: list[dict]) -> None:
@@ -114,7 +119,10 @@ class LocalStore:
             finally:
                 handle.close()
 
-    def search(self, collection: str, vector: np.ndarray, top_k: int = 8, doc_id: str | None = None) -> list[Hit]:
+    def search(self, collection: str, vector: np.ndarray, top_k: int = 8, doc_id: str | None = None,
+               visible: set[str] | None = None) -> list[Hit]:
+        """Best matches first. `visible` limits the search to chunks of those sandboxes (a chunk
+        without a sandbox field is global sample data, sandbox "")."""
         vecs, payloads = self._load(collection)
         if not payloads:
             return []
@@ -123,6 +131,8 @@ class LocalStore:
         hits = []
         for i in order:
             if doc_id and payloads[i].get("doc_id") != doc_id:
+                continue
+            if visible is not None and payloads[i].get("sandbox", "") not in visible:
                 continue
             hits.append(Hit(float(scores[i]), payloads[i]))
             if len(hits) >= top_k:
@@ -146,6 +156,7 @@ class QdrantStore:
         if not self.client.collection_exists(collection):
             self.client.create_collection(collection, vectors_config=VectorParams(size=dim, distance=Distance.COSINE))
             self.client.create_payload_index(collection, "doc_id", PayloadSchemaType.KEYWORD)
+            self.client.create_payload_index(collection, "sandbox", PayloadSchemaType.KEYWORD)
 
     @staticmethod
     def _pid(chunk_id: str) -> str:
@@ -171,11 +182,26 @@ class QdrantStore:
         if self.client.collection_exists(collection):
             self.client.delete(collection, points_selector=FilterSelector(filter=self._doc_filter(doc_id)))
 
-    def search(self, collection: str, vector: np.ndarray, top_k: int = 8, doc_id: str | None = None) -> list[Hit]:
+    def _search_filter(self, doc_id: str | None, visible: set[str] | None):
+        from qdrant_client.models import (FieldCondition, Filter, IsEmptyCondition, MatchAny, MatchValue,
+                                          PayloadField)
+
+        must = [FieldCondition(key="doc_id", match=MatchValue(value=doc_id))] if doc_id else []
+        should = []
+        if visible is not None:
+            if "" in visible:  # global chunks carry no sandbox field
+                should.append(IsEmptyCondition(is_empty=PayloadField(key="sandbox")))
+            named = sorted(v for v in visible if v)
+            if named:
+                should.append(FieldCondition(key="sandbox", match=MatchAny(any=named)))
+        return Filter(must=must, should=should) if must or should else None
+
+    def search(self, collection: str, vector: np.ndarray, top_k: int = 8, doc_id: str | None = None,
+               visible: set[str] | None = None) -> list[Hit]:
         if not self.client.collection_exists(collection):
             return []
         res = self.client.query_points(collection, query=vector.tolist(), limit=top_k,
-                                       query_filter=self._doc_filter(doc_id) if doc_id else None, with_payload=True)
+                                       query_filter=self._search_filter(doc_id, visible), with_payload=True)
         return [Hit(float(p.score), dict(p.payload or {})) for p in res.points]
 
     def chunks(self, collection: str, doc_id: str) -> list[dict]:

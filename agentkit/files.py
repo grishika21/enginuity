@@ -11,6 +11,7 @@ import hashlib
 import hmac
 import mimetypes
 import re
+import shutil
 import time
 import uuid
 from pathlib import Path
@@ -75,6 +76,19 @@ class FileStore:
         if not path.is_file():
             raise AgentError("That file is no longer available.")
         return path
+
+    def purge_owner(self, owner: str) -> list[str]:
+        """Delete every file a user owns (used to reset a demo sandbox). Returns the file ids."""
+        if owner == LIBRARY:
+            raise ValueError("the shared library is never purged")
+        ids = sorted(self.r.smembers(f"files:of:{owner}"))
+        for file_id in ids:
+            self.r.delete(f"file:{file_id}", f"files:shared:{file_id}")
+        self.r.delete(f"files:of:{owner}")
+        folder = (self.root / owner).resolve()
+        if Path(owner).name == owner and folder.parent == self.root and folder.is_dir():
+            shutil.rmtree(folder)
+        return ids
 
     def share(self, file_id: str, with_user: str) -> None:
         self.r.sadd(f"files:shared:{file_id}", with_user)

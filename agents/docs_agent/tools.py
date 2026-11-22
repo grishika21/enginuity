@@ -21,6 +21,7 @@ from docx.shared import Pt
 from agentkit.approval import is_explicit_yes  # noqa: F401  (re-exported for the graph)
 from agentkit.config import get_settings
 from agentkit.contract import AgentError
+from agentkit.sandbox import valid_sandbox
 
 PART_RE = re.compile(r"\b([A-Z]{2}-\d{2,3}-\d{3}[A-Z]?)\b")
 _HEADING = re.compile(r"^#{1,4}\s+(.+?)\s*$")
@@ -197,21 +198,38 @@ def to_docx(markdown: str) -> bytes:
 # ---- library and graph ---------------------------------------------------------------------
 
 
-def library_dir() -> Path:
-    lib = get_settings().storage_dir / "library"
+def _sandbox_root(sandbox: str) -> Path:
+    if not valid_sandbox(sandbox):
+        raise ValueError("invalid sandbox id")
+    return get_settings().storage_dir / "sandboxes" / sandbox
+
+
+def library_dir(sandbox: str = "") -> Path:
+    """The published-documents library. Each sandbox starts from its own copy of the sample
+    library, so one visitor's publications never show up in another's impact analysis."""
+    lib = _sandbox_root(sandbox) / "library" if sandbox else get_settings().storage_dir / "library"
     if not lib.exists():
+        lib.parent.mkdir(parents=True, exist_ok=True)
         shutil.copytree(get_settings().data_dir / "library", lib)
     return lib
 
 
-def load_graph() -> dict:
-    return json.loads((library_dir() / "graph.json").read_text(encoding="utf-8"))
+def drop_library(sandbox: str) -> bool:
+    root = _sandbox_root(sandbox)
+    if not root.exists():
+        return False
+    shutil.rmtree(root)
+    return True
 
 
-def impact(parts: list[str], equipment: str) -> list[dict]:
+def load_graph(sandbox: str = "") -> dict:
+    return json.loads((library_dir(sandbox) / "graph.json").read_text(encoding="utf-8"))
+
+
+def impact(parts: list[str], equipment: str | None, sandbox: str = "") -> list[dict]:
     """Published documents that use any of the same parts: they may need review."""
     out = []
-    for doc_id, doc in load_graph()["documents"].items():
+    for doc_id, doc in load_graph(sandbox)["documents"].items():
         shared = sorted(set(parts) & set(doc.get("parts", [])))
         if shared:
             out.append({"id": doc_id, "title": doc["title"], "shared_parts": shared})
@@ -226,26 +244,31 @@ def is_approval(reply: str) -> bool:
     return normalized in _APPROVE
 
 
-def next_doc_id(equipment: str) -> str:
-    graph = load_graph()
-    prefix = "TP-1" if equipment.startswith("KP") else "TP-2"
+DOC_PREFIX = {"KP": "TP-1", "KC": "TP-2"}  # other equipment, and documents about no equipment: TP-9xx
+
+
+def next_doc_id(equipment: str | None, sandbox: str = "") -> str:
+    graph = load_graph(sandbox)
+    prefix = DOC_PREFIX.get((equipment or "")[:2], "TP-9")
     used = [int(d[3:]) for d in graph["documents"] if d.startswith(prefix)]
     return f"TP-{max(used, default=int(prefix[3:]) * 100) + 1}"
 
 
-def publish(title: str, equipment: str, parts: list[str], markdown: str) -> str:
+def publish(title: str, equipment: str | None, parts: list[str], markdown: str, sandbox: str = "") -> str:
     """Write the document to the library, then update the graph. If the graph update fails, the
     written file is removed again, so the library never holds a document the graph doesn't know."""
-    lib = library_dir()
-    doc_id = next_doc_id(equipment)
+    lib = library_dir(sandbox)
+    doc_id = next_doc_id(equipment, sandbox)
     doc_path = lib / f"{doc_id}.md"
-    front = f"---\nid: {doc_id}\ntitle: {title}\nequipment: {equipment}\nparts: [{', '.join(parts)}]\n---\n\n"
+    front = (f"---\nid: {doc_id}\ntitle: {title}\nequipment: {equipment or ''}\n"
+             f"parts: [{', '.join(parts)}]\n---\n\n")
     doc_path.write_text(front + markdown, encoding="utf-8")
     try:
         if os.environ.get("DOCS_SIMULATE_GRAPH_FAILURE") == "1":
             raise OSError("simulated graph write failure")
-        graph = load_graph()
-        graph["documents"][doc_id] = {"title": title, "equipment": equipment, "parts": parts, "file": doc_path.name}
+        graph = load_graph(sandbox)
+        graph["documents"][doc_id] = {"title": title, "equipment": equipment or "", "parts": parts,
+                                      "file": doc_path.name}
         tmp = lib / "graph.json.tmp"
         tmp.write_text(json.dumps(graph, indent=2), encoding="utf-8")
         os.replace(tmp, lib / "graph.json")

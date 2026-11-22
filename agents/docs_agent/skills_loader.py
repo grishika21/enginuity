@@ -39,6 +39,7 @@ class SkillSpec:
     rules: str
     generated_sections: dict[str, str] = field(default_factory=dict)
     numbered_sections: list[str] = field(default_factory=list)
+    source_scope: str = "knowledge_base"  # or "document": the whole attached document, when one is attached
 
 
 def parse_skill(path: Path) -> SkillSpec:
@@ -66,7 +67,15 @@ def parse_skill(path: Path) -> SkillSpec:
         rules=body.strip(),
         generated_sections={str(k): str(v) for k, v in (meta.get("generated_sections") or {}).items()},
         numbered_sections=[str(s) for s in meta.get("numbered_sections") or []],
+        source_scope=_scope(meta.get("source_scope")),
     )
+
+
+def _scope(value) -> str:
+    scope = str(value or "knowledge_base")
+    if scope not in ("knowledge_base", "document"):
+        raise ValueError(f"source_scope must be knowledge_base or document, not '{scope}'")
+    return scope
 
 
 def load_skills(root: Path = SKILLS_DIR) -> dict[str, SkillSpec]:

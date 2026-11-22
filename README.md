@@ -2,11 +2,12 @@
 
 **AI agents for engineering workflows.**
 
-A multi-agent assistant for equipment documentation. Engineers work in one chat; an orchestrator
-routes each request to the right specialist agent, and a person stays in control of every step
-that changes shared data.
+A multi-agent assistant for technical documents. People work in one chat; an orchestrator routes
+each request to the right specialist agent, and a person stays in control of every step that
+changes shared data. It ships with a small fictional equipment library, and it works the same on
+any document you add: a manual, a policy, a report.
 
-> **Demo project.** All data is synthetic: "Kestrel Industrial", its KP-200 pump and KC-50
+> **Demo project.** All sample data is synthetic: "Kestrel Industrial", its KP-200 pump and KC-50
 > compressor do not exist. Runs fully locally on a small open model (Ollama), or on any
 > OpenAI-compatible endpoint by changing three environment variables.
 
@@ -18,7 +19,8 @@ that changes shared data.
 | "How often should the bearings be lubricated?" | Two machines match, so the agent **pauses and asks which one**; your reply resumes it. |
 | "Extract the seal and impeller fitting steps from PI-0042" | The PI agent builds a **PageIndex** tree of the process instruction, the LLM picks the sections from the outline, and they come back as a Word file. |
 | "Write a maintenance procedure for the KP-200 seal replacement" | The docs agent picks a **skill**, collects missing inputs, pulls sources from the KB agent, drafts, lets you **review and revise**, shows **which published documents share the same parts**, and publishes only on an explicit **yes**. |
-| "Add this document to the knowledge base" | The orchestrator's **step approval gate** asks before an agent that writes to shared data is called. |
+| "Add this document to the knowledge base" | The orchestrator's **step approval gate** asks before an agent that writes to shared data is called. Any PDF or Word file works, scanned ones too. |
+| "Write a document brief of *your document*" | A general-purpose skill (`document-brief`) drafts from that one document, in reading order, through the same review and publish loop. No equipment model needed. |
 | A viewer asks to write a procedure | Refused: the role check runs **in code**, whatever the model chose. |
 
 ## Architecture
@@ -50,9 +52,9 @@ a handler.
 | **Orchestrator** | `orchestrator/app.py`: turn handling, approval gate, relaying an agent's question and resuming it, signed file links. `orchestrator/router.py`: tools built live from the registry. |
 | **Registry** | `agentkit/registry.py`: an agent writes its card and refreshes a heartbeat with a TTL. Discovery returns only live agents, so a new agent is routable without a redeploy and a dead one drops out. |
 | **KB ingestion** | `agents/kb_ingestion/`: Docling parsing; OCR only when a PDF has no text layer; the LLM picks structural, semantic or recursive chunking; MiniLM embeddings into Qdrant (stand-in for a managed search service) or a NumPy index. |
-| **KB extraction** | `agents/kb_extraction/app.py`: vector search, answers only from the sources, citations checked in code, an "which equipment?" pause on ambiguity, and a `chunks` mode other agents call. |
+| **KB extraction** | `agents/kb_extraction/app.py`: vector search, answers only from the sources, citations checked in code, a "which one?" pause on ambiguity, and a `chunks` mode other agents call (best matches, or one whole document in reading order). |
 | **PI agent** | `agents/pi_agent/`: a LangGraph supervisor over three sub-agents (parser → selector → writer). The selector reasons over a **PageIndex-style** tree (vectorless: section outline with page ranges) instead of embedded chunks. |
-| **Docs agent** | `agents/docs_agent/`: each document type is a **`SKILL.md` folder** (inputs, sections, source query, authoring rules). The LangGraph workflow uses `interrupt()` for every human step and checkpoints to SQLite. |
+| **Docs agent** | `agents/docs_agent/`: each document type is a **`SKILL.md` folder** (inputs, sections, source query, authoring rules): a maintenance procedure, a system description and a document brief for any subject. The LangGraph workflow uses `interrupt()` for every human step and checkpoints to SQLite. |
 | **Deterministic tools** | `agents/docs_agent/tools.py`: section layout, step numbering, part numbers checked against the catalogue, generated parts table, impact analysis, explicit-yes check, publish with rollback. |
 
 ## Design choices
@@ -68,6 +70,11 @@ a handler.
   each agent (the user's token is forwarded). User text is screened, then wrapped as data. Files are
   opaque ids with owner checks, downloads use 10-minute HMAC-signed links, and internal paths are
   scrubbed from replies. The agent call chain is capped to stop loops.
+- **A private sandbox per visitor.** On the hosted demo each browser tab signs in as
+  `<persona>~<random id>` (`agentkit/sandbox.py`). Chats, uploads and outputs are already per user;
+  the knowledge base and the published library are filtered by sandbox, so one visitor's documents
+  never reach another's search, impact analysis or document numbers. *Reset my sandbox* deletes
+  them; the shared samples stay.
 
 ## Run it
 
@@ -90,13 +97,19 @@ The first Docling run downloads its layout models (about a minute).
 
 ```bash
 python scripts/smoke.py              # drives every scenario through the API, as the UI does
-python scripts/eval_routing.py       # routing accuracy on 16 labelled requests, against the real model
-python -m pytest                     # 61 unit tests, no LLM or Redis needed
+python scripts/eval_routing.py       # routing accuracy on 22 labelled requests, against the real model
+python -m pytest                     # 85 unit tests, no LLM or Redis needed
 ```
 
-The routing eval caught a real bug during development: the small local model sometimes sent
-"How do I replace the seal?" to the documentation author instead of the Q&A agent. Sharper agent
-descriptions fixed it: 32/32 over two passes on `qwen3:4b-instruct`.
+The routing eval caught real bugs during development:
+
+- The small local model sometimes sent "How do I replace the seal?" to the documentation author
+  instead of the Q&A agent. Sharper agent descriptions fixed it: 32/32 over two passes on
+  `qwen3:4b-instruct` (the first 16 requests).
+- `gpt-oss-20b` sometimes calls a tool that doesn't exist, named after the first word of a
+  description ("authors"). The router maps such a name only when it fits exactly one tool, and
+  otherwise asks again with the list of real tool names. The eval lists agents in the registry's
+  order, because the order changes what the model does. `gpt-oss-120b`: 22/22.
 
 Reset the demo data: stop the stack, then `rm -rf storage && redis-cli -n 5 flushdb`, and seed again.
 
@@ -110,8 +123,13 @@ Reset the demo data: stop the stack, then `rm -rf storage && redis-cli -n 5 flus
 - **Own Redis.** The app starts `redis-server`, which is installed from `packages.txt`.
 - **Fast start.** The sample knowledge base loads from `demo_snapshot/`, so the samples are not
   re-parsed on every start. To rebuild the snapshot: `python scripts/snapshot.py`.
-- **Model.** The LLM is Groq's `openai/gpt-oss-20b`, which scored 16/16 on the routing eval.
+- **Model.** The LLM is Groq's `openai/gpt-oss-20b` (see the routing eval above). Groq's free tier
+  allows about 200,000 tokens a day per model, so `openai/gpt-oss-120b` takes over when that runs
+  out (`LLM_FALLBACK_MODELS`); a limited model is skipped until its limit resets, and when every
+  model is limited the chat says so instead of failing silently.
 - **Same client.** The page is a client of the orchestrator's API, like the web UI.
+- **Built for first-time visitors.** One-click examples for each agent, a *Use your own document*
+  path (upload → approve → ask, extract or brief) and a private sandbox per browser tab.
 
 To deploy, go to [share.streamlit.io](https://share.streamlit.io) and choose **Create app**:
 
@@ -121,16 +139,24 @@ To deploy, go to [share.streamlit.io](https://share.streamlit.io) and choose **C
 Optional secrets: `LLM_MODEL`, `LLM_BASE_URL`, `LLM_API_KEY` (any OpenAI-compatible provider) and
 `JWT_SECRET`.
 
-## Demo script (about 2 minutes)
+## Demo script (about 3 minutes)
 
-1. Sign in as **asha**. Point at the agent panel: four agents, live heartbeats.
-2. Ask the seal question. Open the steps: router → KB agent → cited answer that uses the scanned bulletin's newer seal.
-3. Ask the bearing question. It asks which machine; click one.
-4. Attach `PI-0042` and ask for the seal and impeller steps. Open the Word file.
-5. Ask for the seal-replacement procedure. Open the draft, ask for one change, approve, read the impact list, say **yes**.
-6. Add a document type live: copy `examples/skills/troubleshooting-guide` into `agents/docs_agent/skills/`, sign in as **admin**, click *Reload docs-agent skills*, then ask for a KP-200 troubleshooting guide.
-7. Sign in as **ravi** and ask for a procedure: refused by role.
-8. Optional: stop the docs agent mid-review, start it again, and approve. The run resumes from its checkpoint.
+1. Sign in as **asha**. Point at *Agents online*: four agents, live heartbeats.
+2. *Ask a question* → the seal question. Open *How this was handled*: router → KB agent → a cited
+   answer that uses the scanned bulletin's newer seal.
+3. *What is the supply voltage?* It asks which machine; click one.
+4. *Extract steps* → a PI-0042 example. Open the Word file.
+5. *Write a document* → the KC-50 filter procedure. Ask for one change, approve, read the impact
+   list, say **yes**.
+6. *Use your own document*: upload any PDF, add it (approve the step), ask a question about it,
+   then *Write a brief* of it.
+7. *Guardrails*: Ravi (viewer) asks for a procedure and is refused in code; a prompt injection is
+   blocked before any model sees it.
+8. Add a document type live: sign in as **admin** and switch on *Troubleshooting-guide document
+   type* (locally: copy `examples/skills/troubleshooting-guide` into `agents/docs_agent/skills/` and
+   click *Reload docs-agent skills*), then ask for a KP-200 troubleshooting guide.
+9. Optional, locally: stop the docs agent mid-review, start it again, and approve. The run resumes
+   from its checkpoint.
 
 ## What is simplified
 
@@ -141,6 +167,7 @@ This is a demo, so some production pieces are stand-ins:
 | Local folder + Redis metadata for files | Blob storage with SAS links |
 | NumPy index or Qdrant | A managed vector search service |
 | Demo users with HS256 JWTs | An identity provider (OIDC) with role claims |
+| A sandbox per browser tab, keyed by a random id | Tenants and accounts from the identity provider |
 | One shared Redis, SQLite checkpoints | Managed Redis, Redis or Postgres checkpointer across replicas |
 | Images in documents are counted, not classified | A vision model keeps technical diagrams and drops decorative ones |
 | Processes on one machine | Containers on Kubernetes behind an API gateway |

@@ -15,17 +15,18 @@ from agentkit.contract import AgentCard, AgentError, Completed, Skill
 from agentkit.docparse import parse
 from agentkit.llm import get_llm
 from agentkit.redis_conn import get_redis
+from agentkit.sandbox import sandbox_of
 from agentkit.server import JobContext, create_agent_app
 from agentkit.vectors import embed, get_store
-from agents.kb_common import COLLECTION, equipment_codes, save_doc
+from agents.kb_common import COLLECTION, equipment_codes, get_doc, save_doc
 from agents.kb_ingestion.chunking import choose_strategy, make_chunks
 
 CARD = AgentCard(
     name="kb-ingestion-agent",
     title="Knowledge-base ingestion",
-    description="Adds documents (PDF, Word, PowerPoint, Excel, HTML, Markdown, scanned PDFs) to the "
-                "searchable knowledge base. Use when the user uploads or names a document and asks to "
-                "add, ingest, index or learn it.",
+    description="Adds documents of any kind (manuals, bulletins, policies, papers; PDF, Word, "
+                "PowerPoint, Excel, HTML, Markdown, scanned PDFs) to the searchable knowledge base. Use "
+                "when the user uploads or names a document and asks to add, ingest, index or learn it.",
     version="1.0.0",
     url=os.environ.get("KB_INGESTION_URL", "http://localhost:8101"),
     skills=[Skill(id="ingest", name="Add a document to the knowledge base",
@@ -36,16 +37,34 @@ CARD = AgentCard(
 )
 
 
+def doc_ids(content: bytes, sandbox: str) -> tuple[str, str]:
+    """(id of this content in the global sample index, id to index it under for this sandbox).
+
+    A sandbox gets its own id, so re-ingesting a file there never replaces another visitor's
+    chunks or the shared samples."""
+    global_id = "doc-" + hashlib.sha1(content).hexdigest()[:12]
+    if not sandbox:
+        return global_id, global_id
+    return global_id, "doc-" + hashlib.sha1(sandbox.encode() + b":" + content).hexdigest()[:12]
+
+
 def handle(ctx: JobContext) -> Completed:
     if not ctx.request.files:
         raise AgentError("Attach or pick a document to add to the knowledge base.")
     parse_only = bool(ctx.parameters.get("parse_only"))
     store = get_store()
+    sandbox = sandbox_of(ctx.user)
     reports, data = [], []
     for file_id in ctx.request.files:
         path = ctx.files.path(file_id, ctx.user)
         name = ctx.files.meta(file_id)["name"]
         started = time.time()
+        global_id, doc_id = doc_ids(path.read_bytes(), sandbox)
+        if sandbox and get_doc(global_id) and not parse_only:
+            reports.append(f"**{get_doc(global_id)['title']}** is already in the shared sample knowledge base, "
+                           "so there is nothing to add. Ask a question about it.")
+            data.append({"doc_id": global_id, "already_indexed": True})
+            continue
         ctx.progress("Parsing with Docling", name)
         doc = parse(path, name)
         if doc.ocr_used:
@@ -59,7 +78,6 @@ def handle(ctx: JobContext) -> Completed:
         strategy, reason = choose_strategy(get_llm(), doc)
         chunks = make_chunks(strategy, doc, embed)
         ctx.progress(f"Chunking: {strategy}", f"{len(chunks)} chunks. {reason}")
-        doc_id = "doc-" + hashlib.sha1(path.read_bytes()).hexdigest()[:12]
         equipment = equipment_codes(doc.title + "\n" + doc.markdown)[:3]
         ctx.progress("Embedding and indexing", f"{len(chunks)} chunks")
         texts = [f"{doc.title} > {c.heading}\n{c.text}" for c in chunks]
@@ -70,12 +88,14 @@ def handle(ctx: JobContext) -> Completed:
             [f"{doc_id}:{i}" for i in range(len(chunks))],
             vectors,
             [{"doc_id": doc_id, "title": doc.title, "file_id": file_id, "file_name": name, "page": c.page,
-              "heading": c.heading, "text": c.text, "order": i, "equipment": equipment}
+              "heading": c.heading, "text": c.text, "order": i, "equipment": equipment,
+              **({"sandbox": sandbox} if sandbox else {})}
              for i, c in enumerate(chunks)],
         )
         save_doc(doc_id, {"title": doc.title, "file_id": file_id, "file_name": name, "pages": len(doc.pages),
                           "chunks": len(chunks), "strategy": strategy, "ocr": doc.ocr_used,
-                          "equipment": equipment, "owner": ctx.user, "indexed_at": time.time()})
+                          "equipment": equipment, "owner": ctx.user, "sandbox": sandbox,
+                          "indexed_at": time.time()})
         get_redis().set(f"kb:session:{ctx.session_id}", doc_id, ex=24 * 3600)
         took = time.time() - started
         ocr_note = " Read with OCR (scanned PDF)." if doc.ocr_used else ""

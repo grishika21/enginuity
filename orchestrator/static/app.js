@@ -10,6 +10,7 @@ const SAMPLES = {
     "How often should the bearings be lubricated?",
     "Extract the mechanical seal and impeller fitting steps from PI-0042",
     "Write a maintenance procedure for the KP-200 mechanical seal replacement",
+    "Write a document brief of the KP-200 maintenance manual",
   ],
   viewer: [
     "What torque does the KP-200 impeller nut need?",
@@ -198,7 +199,7 @@ function emptyState() {
   const tpl = document.createElement("div");
   tpl.id = "empty";
   tpl.className = "empty";
-  tpl.innerHTML = '<h2>What do you need?</h2><p class="muted">Ask about the KP-200 pump or KC-50 compressor, extract from a process instruction, or have a document drafted for review.</p><div id="samples" class="samples"></div>';
+  tpl.innerHTML = '<h2>What do you need?</h2><p class="muted">Ask about the documents, extract steps into Word, or have a document written for your review. To use your own document, upload it with the paperclip and ask to add it to the knowledge base.</p><div id="samples" class="samples"></div>';
   return tpl;
 }
 
